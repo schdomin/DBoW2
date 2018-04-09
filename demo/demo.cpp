@@ -64,7 +64,7 @@ using namespace DUtils;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 void loadFeatures(std::vector<std::vector<DescriptorType> >& features);
-void testVocCreation(const std::vector<std::vector<DescriptorType> >& features);
+void createVocabulary(const std::vector<std::vector<DescriptorType> >& features);
 void testDatabase(const std::vector<std::vector<DescriptorType> >& features);
 
 //! @brief transforms an opencv mat descriptor into a boost dynamic bitset used by dbow2
@@ -91,7 +91,7 @@ void wait()
 int main() {
   std::vector<std::vector<DescriptorType> > features;
   loadFeatures(features);
-  testVocCreation(features);
+  createVocabulary(features);
   wait();
   testDatabase(features);
   return 0;
@@ -150,7 +150,7 @@ void loadFeatures(std::vector<std::vector<DescriptorType> >& features)
 
 // ----------------------------------------------------------------------------
 
-void testVocCreation(const std::vector<std::vector<DescriptorType> >& features)
+void createVocabulary(const std::vector<std::vector<DescriptorType> >& features)
 {
   // branching factor and depth levels 
   const int k = 9;

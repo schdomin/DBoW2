@@ -71,6 +71,8 @@ endif(BUILD_DBoW2)
 if(BUILD_Demo)
   add_executable(demo demo/demo.cpp)
   target_link_libraries(demo ${PROJECT_NAME} ${OpenCV_LIBS} ${DLib_LIBS})
+  add_executable(create_vocabulary demo/create_vocabulary.cpp)
+  target_link_libraries(create_vocabulary ${PROJECT_NAME} ${OpenCV_LIBS} ${DLib_LIBS})
   file(COPY demo/images DESTINATION ${CMAKE_BINARY_DIR}/)
 endif(BUILD_Demo)
 
