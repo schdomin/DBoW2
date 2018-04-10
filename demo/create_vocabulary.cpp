@@ -57,7 +57,7 @@ using namespace DUtils;
 
 
 
-void loadFeatures(std::vector<std::vector<DescriptorType> >& features, const std::string& images_folder_);
+void loadFeatures(std::vector<std::vector<DescriptorType> >& features, const std::vector<std::string>& images_folders_);
 void createVocabulary(const std::vector<std::vector<DescriptorType> >& features);
 
 //! @brief transforms an opencv mat descriptor into a boost dynamic bitset used by dbow2
@@ -67,17 +67,24 @@ void setDescriptor(const cv::Mat& descriptor_cv_, FBrief::TDescriptor& descripto
 
 
 
-int main(int32_t argc_, char** argv_) {
-  std::vector<std::vector<DescriptorType> > features;
-  loadFeatures(features, argv_[1]);
+int32_t main (int32_t argc_, char** argv_) {
+  std::vector<std::vector<DescriptorType> > features(0);
+  std::vector<std::string> image_folders(0);
+  for (uint32_t u = 1; u < static_cast<uint32_t>(argc_); ++u) {
+    image_folders.push_back(argv_[u]);
+    std::cerr << "loading image folder: " << image_folders.back() << std::endl;
+  }
+  std::cerr << "press [ENTER] to start processing" << std::endl;
+  getchar();
+
+  loadFeatures(features, image_folders);
   createVocabulary(features);
   return 0;
 }
 
 
 
-void loadFeatures(std::vector<std::vector<DescriptorType> >& features, const std::string& images_folder_)
-{
+void loadFeatures(std::vector<std::vector<DescriptorType> >& features, const std::vector<std::string>& images_folders_) {
   features.clear();
   cv::Ptr<cv::FeatureDetector> keypoints_detector;
   cv::Ptr<cv::DescriptorExtractor> descriptor_extractor;
@@ -102,67 +109,74 @@ void loadFeatures(std::vector<std::vector<DescriptorType> >& features, const std
   //ds stats
   uint64_t total_number_of_extracted_descriptors = 0;
 
-  //ds parse the image directory
-  DIR* handle_directory   = 0;
-  struct dirent* iterator = 0;
-  if ((handle_directory = opendir(images_folder_.c_str()))) {
-    while ((iterator = readdir (handle_directory))) {
+  //ds for each image folder
+  for (uint32_t u = 0; u < images_folders_.size(); ++u) {
 
-      //ds buffer file name
-      const std::string file_name = iterator->d_name;
+    //ds parse the image directory
+    DIR* handle_directory   = 0;
+    struct dirent* iterator = 0;
+    if ((handle_directory = opendir(images_folders_[u].c_str()))) {
+      while ((iterator = readdir (handle_directory))) {
 
-      //ds skip paths
-      if (file_name == "." || file_name == "..") {
-        continue;
+        //ds buffer file name
+        const std::string file_name = iterator->d_name;
+
+        //ds skip paths
+        if (file_name == "." || file_name == "..") {
+          continue;
+        }
+
+        //ds skip if filter doesn't match
+        if (file_name.find(filter) == std::string::npos) {
+          continue;
+        }
+
+        //ds build image string
+        const std::string file_path_image = images_folders_[u]+"/"+file_name;
+
+        //ds load image from disk
+        const cv::Mat image = cv::imread(file_path_image, CV_LOAD_IMAGE_GRAYSCALE);
+
+        //ds check for invalid image
+        if (image.rows == 0 || image.cols == 0) {
+          std::cerr << "loadFeatures|WARNING: skipped invalid image: " << file_path_image << std::endl;
+          continue;
+        }
+
+        //ds detect keypoints and extract descriptors
+        std::vector<cv::KeyPoint> keypoints;
+        cv::Mat descriptors;
+        keypoints_detector->detect(image, keypoints);
+        descriptor_extractor->compute(image, keypoints, descriptors);
+        total_number_of_extracted_descriptors += keypoints.size();
+        std::cerr << "image: " << file_path_image
+                  << " extracted descriptors: " << keypoints.size()
+                  << " (total: " << total_number_of_extracted_descriptors << ")" << std::endl;
+
+        //ds convert descriptors to BoW format
+        std::vector<DescriptorType> descriptors_bow(descriptors.rows);
+        for(int32_t u = 0; u < descriptors.rows; ++u) {
+  #if DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRIEF or DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK
+          setDescriptor(descriptors.row(u), descriptors_bow[u]);
+  #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_ORB
+          descriptors_bow[u] = descriptors.row(u);
+  #endif
+        }
+        features.push_back(descriptors_bow);
       }
-
-      //ds skip if filter doesn't match
-      if (file_name.find(filter) == std::string::npos) {
-        continue;
-      }
-
-      //ds load image from disk
-      const cv::Mat image = cv::imread(images_folder_+"/"+file_name, CV_LOAD_IMAGE_GRAYSCALE);
-
-      //ds check for invalid image
-      if (image.rows == 0 || image.cols == 0) {
-        std::cerr << "loadFeatures|WARNING: skipped invalid image: " << file_name << std::endl;
-        continue;
-      }
-
-      //ds detect keypoints and extract descriptors
-      std::vector<cv::KeyPoint> keypoints;
-      cv::Mat descriptors;
-      keypoints_detector->detect(image, keypoints);
-      descriptor_extractor->compute(image, keypoints, descriptors);
-      total_number_of_extracted_descriptors += keypoints.size();
-      std::cerr << "image: " << file_name
-                << " extracted descriptors: " << keypoints.size()
-                << " (total: " << total_number_of_extracted_descriptors << ")" << std::endl;
-
-      //ds convert descriptors to BoW format
-      std::vector<DescriptorType> descriptors_bow(descriptors.rows);
-      for(int32_t u = 0; u < descriptors.rows; ++u) {
-#if DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRIEF or DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK
-        setDescriptor(descriptors.row(u), descriptors_bow[u]);
-#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_ORB
-        descriptors_bow[u] = descriptors.row(u);
-#endif
-      }
-      features.push_back(descriptors_bow);
+      closedir(handle_directory);
+    } else {
+      std::cerr << "loadFeatures|ERROR: unable to access image folder: " << images_folders_[u] << std::endl;
+      throw std::runtime_error("invalid image folder");
     }
-    closedir(handle_directory);
-  } else {
-    std::cerr << "loadFeatures|ERROR: unable to access image folder: " << images_folder_ << std::endl;
-    throw std::runtime_error("invalid image folder");
   }
 }
 
-void createVocabulary(const std::vector<std::vector<DescriptorType> >& features)
-{
+void createVocabulary(const std::vector<std::vector<DescriptorType> >& features) {
+
   // branching factor and depth levels
-  const int k = 9;
-  const int L = 3;
+  const int k = 10;
+  const int L = 6;
   const WeightingType weight = TF_IDF;
   const ScoringType score = L1_NORM;
 
