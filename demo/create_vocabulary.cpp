@@ -23,10 +23,11 @@
 #define DESCRIPTOR_TYPE_BRIEF 0
 #define DESCRIPTOR_TYPE_ORB 1
 #define DESCRIPTOR_TYPE_BRISK 2
+#define DESCRIPTOR_TYPE_FREAK 3
 
 
 //ds CHOOSE descriptor type
-#define DESCRIPTOR_TYPE DESCRIPTOR_TYPE_BRISK
+#define DESCRIPTOR_TYPE DESCRIPTOR_TYPE_FREAK
 
 //ds SET descriptor size
 #define DESCRIPTOR_SIZE_BITS 512
@@ -50,6 +51,11 @@
   typedef BRISKVocabulary Vocabulary;
   typedef BRISKDatabase Database;
   std::string descriptor_type_name = "BRISK";
+#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_FREAK
+  typedef DBoW2::FBRISK::TDescriptor DescriptorType;
+  typedef BRISKVocabulary Vocabulary;
+  typedef BRISKDatabase Database;
+  std::string descriptor_type_name = "FREAK";
 #endif
 
 using namespace DBoW2;
@@ -74,6 +80,11 @@ int32_t main (int32_t argc_, char** argv_) {
     image_folders.push_back(argv_[u]);
     std::cerr << "loading image folder: " << image_folders.back() << std::endl;
   }
+  if (image_folders.empty()) {
+    std::cerr << "ERROR: no image folders provided" << std::endl;
+    return 0;
+  }
+
   std::cerr << "press [ENTER] to start processing" << std::endl;
   getchar();
 
@@ -101,6 +112,10 @@ void loadFeatures(std::vector<std::vector<DescriptorType> >& features, const std
   keypoints_detector   = cv::BRISK::create(25);
   descriptor_extractor = cv::BRISK::create(25);
   std::cout << "Extracting BRISK features..." << std::endl;
+#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_FREAK
+  keypoints_detector   = cv::FastFeatureDetector::create(10);
+  descriptor_extractor = cv::xfeatures2d::FREAK::create();
+  std::cout << "Extracting FREAK features..." << std::endl;
 #endif
 
   //ds image name filter (only images containing this string are considered)
@@ -156,7 +171,7 @@ void loadFeatures(std::vector<std::vector<DescriptorType> >& features, const std
         //ds convert descriptors to BoW format
         std::vector<DescriptorType> descriptors_bow(descriptors.rows);
         for(int32_t u = 0; u < descriptors.rows; ++u) {
-  #if DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRIEF or DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK
+  #if DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRIEF or DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK or DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_FREAK
           setDescriptor(descriptors.row(u), descriptors_bow[u]);
   #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_ORB
           descriptors_bow[u] = descriptors.row(u);
