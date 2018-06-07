@@ -78,32 +78,5 @@ void FBrief::fromString(FBrief::TDescriptor &a, const std::string &s)
 
 // --------------------------------------------------------------------------
 
-void FBrief::toMat32F(const std::vector<TDescriptor> &descriptors, 
-  cv::Mat &mat)
-{
-  if(descriptors.empty())
-  {
-    mat.release();
-    return;
-  }
-  
-  const int N = descriptors.size();
-  const int L = descriptors[0].size();
-  
-  mat.create(N, L, CV_32F);
-  
-  for(int i = 0; i < N; ++i)
-  {
-    const TDescriptor& desc = descriptors[i];
-    float *p = mat.ptr<float>(i);
-    for(int j = 0; j < L; ++j, ++p)
-    {
-      *p = (desc[j] ? 1 : 0);
-    }
-  } 
-}
-
-// --------------------------------------------------------------------------
-
 } // namespace DBoW2
 

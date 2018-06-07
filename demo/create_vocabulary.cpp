@@ -20,17 +20,19 @@
 #endif
 
 //ds available descriptor types
-#define DESCRIPTOR_TYPE_BRIEF 0
-#define DESCRIPTOR_TYPE_ORB 1
-#define DESCRIPTOR_TYPE_BRISK 2
-#define DESCRIPTOR_TYPE_FREAK 3
+#define DESCRIPTOR_TYPE_BRIEF  0
+#define DESCRIPTOR_TYPE_ORB    1
+#define DESCRIPTOR_TYPE_BRISK  2
+#define DESCRIPTOR_TYPE_FREAK  3
+#define DESCRIPTOR_TYPE_A_KAZE 4
+
 
 
 //ds CHOOSE descriptor type
-#define DESCRIPTOR_TYPE DESCRIPTOR_TYPE_FREAK
+#define DESCRIPTOR_TYPE DESCRIPTOR_TYPE_A_KAZE
 
 //ds SET descriptor size
-#define DESCRIPTOR_SIZE_BITS 512
+#define DESCRIPTOR_SIZE_BITS 486
 #define DESCRIPTOR_SIZE_BYTES DESCRIPTOR_SIZE_BITS/8
 
 
@@ -56,6 +58,11 @@
   typedef BRISKVocabulary Vocabulary;
   typedef BRISKDatabase Database;
   std::string descriptor_type_name = "FREAK";
+#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_A_KAZE
+  typedef DBoW2::FBrief::TDescriptor DescriptorType;
+  typedef BriefVocabulary Vocabulary;
+  typedef BriefDatabase Database;
+  std::string descriptor_type_name = "A-KAZE";
 #endif
 
 using namespace DBoW2;
@@ -103,19 +110,23 @@ void loadFeatures(std::vector<std::vector<DescriptorType> >& features, const std
 #if DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRIEF
   keypoints_detector   = cv::FastFeatureDetector::create(10);
   descriptor_extractor = cv::xfeatures2d::BriefDescriptorExtractor::create(DESCRIPTOR_SIZE_BYTES);
-  std::cout << "Extracting BRIEF features..." << std::endl;
+  std::cout << "Extracting BRIEF features (" << DESCRIPTOR_SIZE_BITS << "b, " << DESCRIPTOR_SIZE_BYTES << "B) ..." << std::endl;
 #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_ORB
   keypoints_detector   = cv::ORB::create(1000);
   descriptor_extractor = cv::ORB::create(1000);
-  std::cout << "Extracting ORB features..." << std::endl;
+  std::cout << "Extracting ORB features (" << DESCRIPTOR_SIZE_BITS << "b, " << DESCRIPTOR_SIZE_BYTES << "B) ..." << std::endl;
 #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK
   keypoints_detector   = cv::BRISK::create(25);
   descriptor_extractor = cv::BRISK::create(25);
-  std::cout << "Extracting BRISK features..." << std::endl;
+  std::cout << "Extracting BRISK features (" << DESCRIPTOR_SIZE_BITS << "b, " << DESCRIPTOR_SIZE_BYTES << "B) ..." << std::endl;
 #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_FREAK
   keypoints_detector   = cv::FastFeatureDetector::create(10);
   descriptor_extractor = cv::xfeatures2d::FREAK::create();
-  std::cout << "Extracting FREAK features..." << std::endl;
+  std::cout << "Extracting FREAK features (" << DESCRIPTOR_SIZE_BITS << "b, " << DESCRIPTOR_SIZE_BYTES << "B) ..." << std::endl;
+#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_A_KAZE
+  keypoints_detector   = cv::AKAZE::create(cv::AKAZE::DESCRIPTOR_MLDB, 0, 3, 0.0001);
+  descriptor_extractor = cv::AKAZE::create();
+  std::cout << "Extracting A-KAZE features (" << DESCRIPTOR_SIZE_BITS << "b, " << DESCRIPTOR_SIZE_BYTES << "B) ..." << std::endl;
 #endif
 
   //ds image name filter (only images containing this string are considered)
@@ -171,7 +182,7 @@ void loadFeatures(std::vector<std::vector<DescriptorType> >& features, const std
         //ds convert descriptors to BoW format
         std::vector<DescriptorType> descriptors_bow(descriptors.rows);
         for(int32_t u = 0; u < descriptors.rows; ++u) {
-  #if DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRIEF or DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK or DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_FREAK
+  #if DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRIEF or DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK or DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_FREAK or DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_A_KAZE
           setDescriptor(descriptors.row(u), descriptors_bow[u]);
   #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_ORB
           descriptors_bow[u] = descriptors.row(u);

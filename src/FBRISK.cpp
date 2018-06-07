@@ -67,32 +67,6 @@ void FBRISK::fromString(FBRISK::TDescriptor &a, const std::string &s)
   ss >> a;
 }
 
-// --------------------------------------------------------------------------
-
-void FBRISK::toMat64F(const std::vector<TDescriptor> &descriptors,
-  cv::Mat &mat)
-{
-  if(descriptors.empty())
-  {
-    mat.release();
-    return;
-  }
-  
-  const int N = descriptors.size();
-  const int L = descriptors[0].size();
-  
-  mat.create(N, L, CV_64F);
-  
-  for(int i = 0; i < N; ++i)
-  {
-    const TDescriptor& desc = descriptors[i];
-    float *p = mat.ptr<float>(i);
-    for(int j = 0; j < L; ++j, ++p)
-    {
-      *p = (desc[j] ? 1 : 0);
-    }
-  } 
-}
 
 // --------------------------------------------------------------------------
 

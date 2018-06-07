@@ -56,15 +56,6 @@ public:
    * @param s string version
    */
   static void fromString(TDescriptor &a, const std::string &s);
-  
-  /**
-   * Returns a mat with the descriptors in float format
-   * @param descriptors
-   * @param mat (out) NxL 32F matrix
-   */
-  static void toMat32F(const std::vector<TDescriptor> &descriptors, 
-    cv::Mat &mat);
-
 };
 
 } // namespace DBoW2
