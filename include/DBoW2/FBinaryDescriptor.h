@@ -1,5 +1,5 @@
-#ifndef __D_T_F_BRISK__
-#define __D_T_F_BRISK__
+#ifndef __D_T_F_BINARYDESCRIPTOR__
+#define __D_T_F_BINARYDESCRIPTOR__
 
 #include <opencv2/core.hpp>
 #include <vector>
@@ -10,8 +10,8 @@
 
 namespace DBoW2 {
 
-/// Functions to manipulate BRISK-512 descriptors
-class FBRISK: protected FClass
+/// Functions to manipulate generic binary descriptors, compared with the hamming distance
+class FBinaryDescriptor: protected FClass
 {
 public:
 

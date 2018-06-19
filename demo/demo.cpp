@@ -52,9 +52,9 @@
   typedef OrbDatabase Database;
   const std::string descriptor_type_name = "ORB";
 #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK
-  typedef DBoW2::FBRISK::TDescriptor DescriptorType;
-  typedef BRISKVocabulary Vocabulary;
-  typedef BRISKDatabase Database;
+  typedef DBoW2::FBinaryDescriptor::TDescriptor DescriptorType;
+  typedef BinaryDescriptorVocabulary Vocabulary;
+  typedef BinaryDescriptorDatabase Database;
   std::string descriptor_type_name = "BRISK";
 #endif
 

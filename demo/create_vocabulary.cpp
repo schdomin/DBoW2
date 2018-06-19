@@ -1,10 +1,10 @@
 #include <iostream>
 #include <vector>
 #include "dirent.h" //ds UNIX only
+#include <bitset>
 
 // DBoW2
 #include "DBoW2.h" // defines OrbVocabulary and OrbDatabase
-
 #include <DUtils/DUtils.h>
 #include <DVision/DVision.h>
 
@@ -29,40 +29,44 @@
 
 
 //ds CHOOSE descriptor type
-#define DESCRIPTOR_TYPE DESCRIPTOR_TYPE_A_KAZE
+#define DESCRIPTOR_TYPE DESCRIPTOR_TYPE_BRIEF
 
 //ds SET descriptor size
-#define DESCRIPTOR_SIZE_BITS 486
+#define DESCRIPTOR_SIZE_BITS 256
+
+
+
+//ds automatic size computation for bitset transform
 #define DESCRIPTOR_SIZE_BYTES DESCRIPTOR_SIZE_BITS/8
+#define DESCRIPTOR_SIZE_BITS_IN_BYTES DESCRIPTOR_SIZE_BYTES*8
+#define DESCRIPTOR_SIZE_BITS_EXTRA DESCRIPTOR_SIZE_BITS-DESCRIPTOR_SIZE_BITS_IN_BYTES
 
+//ds determine name
+#if DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRIEF
+  const std::string descriptor_type_name = "BRIEF";
+#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_ORB
+  const std::string descriptor_type_name = "ORB";
+#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK
+  std::string descriptor_type_name = "BRISK";
+#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_FREAK
+  std::string descriptor_type_name = "FREAK";
+#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_A_KAZE
+  std::string descriptor_type_name = "A-KAZE";
+#endif
 
-
-//ds determine types
+//ds determine vocabulary types
 #if DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRIEF
   typedef DBoW2::FBrief::TDescriptor DescriptorType;
   typedef BriefVocabulary Vocabulary;
   typedef BriefDatabase Database;
-  const std::string descriptor_type_name = "BRIEF";
 #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_ORB
   typedef DBoW2::FORB::TDescriptor DescriptorType;
   typedef OrbVocabulary Vocabulary;
   typedef OrbDatabase Database;
-  const std::string descriptor_type_name = "ORB";
-#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK
-  typedef DBoW2::FBRISK::TDescriptor DescriptorType;
-  typedef BRISKVocabulary Vocabulary;
-  typedef BRISKDatabase Database;
-  std::string descriptor_type_name = "BRISK";
-#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_FREAK
-  typedef DBoW2::FBRISK::TDescriptor DescriptorType;
-  typedef BRISKVocabulary Vocabulary;
-  typedef BRISKDatabase Database;
-  std::string descriptor_type_name = "FREAK";
-#elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_A_KAZE
-  typedef DBoW2::FBrief::TDescriptor DescriptorType;
-  typedef BriefVocabulary Vocabulary;
-  typedef BriefDatabase Database;
-  std::string descriptor_type_name = "A-KAZE";
+#else
+  typedef DBoW2::FBinaryDescriptor::TDescriptor DescriptorType;
+  typedef BinaryDescriptorVocabulary Vocabulary;
+  typedef BinaryDescriptorDatabase Database;
 #endif
 
 using namespace DBoW2;
@@ -110,24 +114,29 @@ void loadFeatures(std::vector<std::vector<DescriptorType> >& features, const std
 #if DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRIEF
   keypoints_detector   = cv::FastFeatureDetector::create(10);
   descriptor_extractor = cv::xfeatures2d::BriefDescriptorExtractor::create(DESCRIPTOR_SIZE_BYTES);
-  std::cout << "Extracting BRIEF features (" << DESCRIPTOR_SIZE_BITS << "b, " << DESCRIPTOR_SIZE_BYTES << "B) ..." << std::endl;
+  std::cout << "Extracting BRIEF features ";
 #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_ORB
   keypoints_detector   = cv::ORB::create(1000);
   descriptor_extractor = cv::ORB::create(1000);
-  std::cout << "Extracting ORB features (" << DESCRIPTOR_SIZE_BITS << "b, " << DESCRIPTOR_SIZE_BYTES << "B) ..." << std::endl;
+  std::cout << "Extracting ORB features ";
 #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_BRISK
   keypoints_detector   = cv::BRISK::create(25);
   descriptor_extractor = cv::BRISK::create(25);
-  std::cout << "Extracting BRISK features (" << DESCRIPTOR_SIZE_BITS << "b, " << DESCRIPTOR_SIZE_BYTES << "B) ..." << std::endl;
+  std::cout << "Extracting BRISK features ";
 #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_FREAK
   keypoints_detector   = cv::FastFeatureDetector::create(10);
   descriptor_extractor = cv::xfeatures2d::FREAK::create();
-  std::cout << "Extracting FREAK features (" << DESCRIPTOR_SIZE_BITS << "b, " << DESCRIPTOR_SIZE_BYTES << "B) ..." << std::endl;
+  std::cout << "Extracting FREAK features ";
 #elif DESCRIPTOR_TYPE == DESCRIPTOR_TYPE_A_KAZE
   keypoints_detector   = cv::AKAZE::create(cv::AKAZE::DESCRIPTOR_MLDB, 0, 3, 0.0001);
   descriptor_extractor = cv::AKAZE::create();
-  std::cout << "Extracting A-KAZE features (" << DESCRIPTOR_SIZE_BITS << "b, " << DESCRIPTOR_SIZE_BYTES << "B) ..." << std::endl;
+  std::cout << "Extracting A-KAZE features ";
 #endif
+
+  //ds size info
+  std::cout << "(full bits: " << DESCRIPTOR_SIZE_BITS
+            << ", full bytes: " << DESCRIPTOR_SIZE_BYTES
+            << ", remaining bits: " << DESCRIPTOR_SIZE_BITS_EXTRA <<  ") ..." << std::endl;
 
   //ds image name filter (only images containing this string are considered)
   const std::string filter = "camera_left";
@@ -216,22 +225,34 @@ void createVocabulary(const std::vector<std::vector<DescriptorType> >& features)
 
   // save the vocabulary to disk
   std::cout << std::endl << "Saving vocabulary..." << std::endl;
-  voc.save("voc_"+descriptor_type_name+".yml.gz");
+  voc.save("voc_"+descriptor_type_name+"_k-"+std::to_string(k)+"_L-"+std::to_string(L)+".yml.gz");
   std::cout << "Done" << std::endl;
 }
 
 void setDescriptor(const cv::Mat& descriptor_cv_, FBrief::TDescriptor& descriptor_dbow2_) {
   FBrief::TDescriptor bit_buffer(DESCRIPTOR_SIZE_BITS);
 
-  //ds loop over all bytes
+  //ds loop over all full bytes
   for (uint32_t u = 0; u < DESCRIPTOR_SIZE_BYTES; ++u) {
 
     //ds get minimal datafrom cv::mat
-    const uchar byte_value = descriptor_cv_.at<uchar>(u);
+    const std::bitset<8> bits(descriptor_cv_.at<uchar>(u));
 
     //ds get bitstring
     for(uint8_t v = 0; v < 8; ++v) {
-      bit_buffer[u*8+v] = (byte_value >> v) & 1;
+      bit_buffer[u*8+v] = bits[v];
+    }
+  }
+
+  //ds check if we have extra bits (less than 1 byte i.e. 8 bits)
+  if (DESCRIPTOR_SIZE_BITS_EXTRA > 0) {
+
+    //ds get last byte (not fully set)
+    const std::bitset<8> bits(descriptor_cv_.at<uchar>(DESCRIPTOR_SIZE_BYTES));
+
+    //ds only set the remaining bits
+    for(uint32_t v = 0; v < DESCRIPTOR_SIZE_BITS_EXTRA; ++v) {
+      bit_buffer[DESCRIPTOR_SIZE_BITS_IN_BYTES+v] = bits[8-DESCRIPTOR_SIZE_BITS_EXTRA+v];
     }
   }
   descriptor_dbow2_ = bit_buffer;

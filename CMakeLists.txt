@@ -23,11 +23,11 @@ endif()
 
 set(HDRS
   include/DBoW2/BowVector.h           include/DBoW2/FBrief.h
-  include/DBoW2/QueryResults.h        include/DBoW2/TemplatedDatabase.h   include/DBoW2/FORB.h          include/DBoW2/FBRISK.h
+  include/DBoW2/QueryResults.h        include/DBoW2/TemplatedDatabase.h   include/DBoW2/FORB.h          include/DBoW2/FBinaryDescriptor.h
   include/DBoW2/DBoW2.h               include/DBoW2/FClass.h              include/DBoW2/FeatureVector.h
   include/DBoW2/ScoringObject.h       include/DBoW2/TemplatedVocabulary.h)
 set(SRCS 
-  src/BowVector.cpp     src/FBrief.cpp        src/FORB.cpp          src/FBRISK.cpp
+  src/BowVector.cpp     src/FBrief.cpp        src/FORB.cpp          src/FBinaryDescriptor.cpp
   src/FeatureVector.cpp src/QueryResults.cpp  src/ScoringObject.cpp)
 
 set(DEPENDENCY_DIR ${CMAKE_CURRENT_BINARY_DIR}/dependencies)
@@ -72,6 +72,7 @@ if(BUILD_Demo)
   add_executable(demo demo/demo.cpp)
   target_link_libraries(demo ${PROJECT_NAME} ${OpenCV_LIBS} ${DLib_LIBS})
   add_executable(create_vocabulary demo/create_vocabulary.cpp)
+  target_compile_options(create_vocabulary PUBLIC "-std=c++11")
   target_link_libraries(create_vocabulary ${PROJECT_NAME} ${OpenCV_LIBS} ${DLib_LIBS})
   file(COPY demo/images DESTINATION ${CMAKE_BINARY_DIR}/)
 endif(BUILD_Demo)

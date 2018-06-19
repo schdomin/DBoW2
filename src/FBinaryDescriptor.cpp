@@ -3,7 +3,8 @@
 #include <sstream>
 
 #include <DVision/DVision.h>
-#include "FBRISK.h"
+
+#include "FBinaryDescriptor.h"
 
 using namespace std;
 
@@ -11,8 +12,8 @@ namespace DBoW2 {
 
 // --------------------------------------------------------------------------
 
-void FBRISK::meanValue(const std::vector<FBRISK::pDescriptor> &descriptors,
-    FBRISK::TDescriptor &mean)
+void FBinaryDescriptor::meanValue(const std::vector<FBinaryDescriptor::pDescriptor> &descriptors,
+    FBinaryDescriptor::TDescriptor &mean)
 {
   mean.reset();
   
@@ -23,10 +24,10 @@ void FBRISK::meanValue(const std::vector<FBRISK::pDescriptor> &descriptors,
   
   vector<int> counters(L, 0);
 
-  vector<FBRISK::pDescriptor>::const_iterator it;
+  vector<FBinaryDescriptor::pDescriptor>::const_iterator it;
   for(it = descriptors.begin(); it != descriptors.end(); ++it)
   {
-    const FBRISK::TDescriptor &desc = **it;
+    const FBinaryDescriptor::TDescriptor &desc = **it;
     for(int i = 0; i < L; ++i)
     {
       if(desc[i]) counters[i]++;
@@ -42,15 +43,15 @@ void FBRISK::meanValue(const std::vector<FBRISK::pDescriptor> &descriptors,
 
 // --------------------------------------------------------------------------
   
-double FBRISK::distance(const FBRISK::TDescriptor &a,
-  const FBRISK::TDescriptor &b)
+double FBinaryDescriptor::distance(const FBinaryDescriptor::TDescriptor &a,
+  const FBinaryDescriptor::TDescriptor &b)
 {
   return (double)DVision::BRIEF::distance(a, b);
 }
 
 // --------------------------------------------------------------------------
   
-std::string FBRISK::toString(const FBRISK::TDescriptor &a)
+std::string FBinaryDescriptor::toString(const FBinaryDescriptor::TDescriptor &a)
 {
   // from boost::bitset
   string s;
@@ -60,7 +61,7 @@ std::string FBRISK::toString(const FBRISK::TDescriptor &a)
 
 // --------------------------------------------------------------------------
   
-void FBRISK::fromString(FBRISK::TDescriptor &a, const std::string &s)
+void FBinaryDescriptor::fromString(FBinaryDescriptor::TDescriptor &a, const std::string &s)
 {
   // from boost::bitset
   stringstream ss(s);
